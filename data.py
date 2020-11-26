@@ -46,7 +46,7 @@ class Corpus(object):
 
                 # words = line.strip().split(' ') + ['<eos>']
                 stripped = line.strip().split(' ')
-                if len(stripped > max_len) or stripped[0] == '=':
+                if len(stripped) > max_len or stripped[0] == '=':
                     continue
                 words = ['<bos>'] + stripped + ['<eos>']
                 ids = []
