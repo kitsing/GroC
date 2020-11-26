@@ -371,7 +371,7 @@ def train():
         # raw_loss = criterion(logits, targets)
         # loss = raw_loss
 
-        output_flat = output.view(-1, ntokens)
+        output_flat = logits.view(-1, ntokens)
         output_flat_logsoftmax = torch.log_softmax(output_flat, dim=1)
         targets_flatten = torch.flatten(targets)
         loss = - output_flat_logsoftmax[torch.arange(targets_flatten.shape[0]), targets_flatten].sum()
