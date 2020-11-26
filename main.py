@@ -347,7 +347,8 @@ def train():
     hidden = model.init_hidden(args.batch_size)
     # batch, i = 0, 0
     # while i < train_data.size(0) - 1 - 1:
-    for batch, (data, targets) in enumerate(get_batch_padded(train_data, args.batch_size)):
+    from tqdm import tqdm
+    for batch, (data, targets) in tqdm(enumerate(get_batch_padded(train_data, args.batch_size))):
         bptt = args.bptt if np.random.random() < 0.95 else args.bptt / 2.
         # Prevent excessively small or negative sequence lengths
         seq_len = max(5, int(np.random.normal(bptt, 5)))
