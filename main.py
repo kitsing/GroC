@@ -336,7 +336,7 @@ def evaluate(data_source, batch_size=10):
         total_loss += - output_flat_logsoftmax[torch.arange(targets_flatten.shape[0]), targets_flatten].sum().item()
         # total_loss += len(data) * criterion(logits, targets).data
 
-    return total_loss / (data_source[1:, :] != corpus.dictionary.word2idx['1']).sum().item()
+    return total_loss / (data_source[1:, :] != corpus.dictionary.word2idx[corpus.padding]).sum().item()
 
 
 def train():
@@ -374,7 +374,8 @@ def train():
         output_flat = logits.view(-1, ntokens)
         output_flat_logsoftmax = torch.log_softmax(output_flat, dim=1)
         targets_flatten = torch.flatten(targets)
-        loss = - output_flat_logsoftmax[torch.arange(targets_flatten.shape[0]), targets_flatten].sum()
+        target_mask = (targets_flatten != corpus.dictionary.word2idx[corpus.padding]).to(torch.get_default_dtype())
+        loss = - (target_mask * output_flat_logsoftmax[torch.arange(targets_flatten.shape[0]), targets_flatten]).sum()
         # Activation Regularization
         if args.alpha: loss = loss + sum(args.alpha * dropped_rnn_h.pow(2).mean() for dropped_rnn_h in dropped_rnn_hs[-1:])
         # Temporal Activation Regularization (slowness)
