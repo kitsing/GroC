@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 #    This code builds on the AWD-LSTM codebase
 #    (https://github.com/salesforce/awd-lstm-lm).
 #

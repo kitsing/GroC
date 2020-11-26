@@ -24,7 +24,7 @@ import torch
 import torch.nn as nn
 import data
 import model
-from utils import *
+from util import *
 
 import IPython as ipy
 
@@ -252,13 +252,27 @@ def corpus_load(corpus_path, use_unk=False):
     return corpus
 
 
-corpus = corpus_load(args.data)
+corpus = data.Corpus(args.data)
 
 eval_batch_size = 30
 test_batch_size = 2
-train_data = batchify(corpus.train, args.batch_size, args)
-val_data = batchify(corpus.valid, eval_batch_size, args)
-test_data = batchify(corpus.test, test_batch_size, args)
+def own_batchify(data):
+    return data.reshape((-1, 800))
+
+def get_batch_padded(source, batch_size):
+    """
+
+    :param source: num_entries x max_seq_len
+    :return: data, target
+    """
+    from math import ceil
+    num_batches = int(ceil(source.shape[0]/batch_size))
+    for b in range(num_batches):
+        yield source[b*batch_size:(b+1)*batch_size, :-1].permute(1,0).cuda(), source[b*batch_size:(b+1)*batch_size, 1:].permute(1,0).cuda()
+
+train_data = own_batchify(corpus.train)
+val_data = own_batchify(corpus.valid)
+test_data = own_batchify(corpus.test)
 ntokens = len(corpus.dictionary)
 args.ntoken = ntokens
 
@@ -307,26 +321,33 @@ if args.finetune:
 def evaluate(data_source, batch_size=10):
     # Turn on evaluation mode which disables dropout.
     model.eval()
-    total_loss = torch.Tensor([0])
+    total_loss = 0.
     ntokens = len(corpus.dictionary)
     hidden = model.init_hidden(batch_size)
     for i in range(0, data_source.size(0) - 1, args.bptt):
-        data, targets = get_batch(data_source, i, args, evaluation=True)
+        data, targets = get_batch_padded(data_source, eval_batch_size)
         output, weight, bias, hidden = model(data, hidden)
-        logits = torch.mm(output,weight.t()) + bias
-        total_loss += len(data) * criterion(logits, targets).data
         hidden = repackage_hidden(hidden)
-    return total_loss.item() / len(data_source)
+
+        logits = torch.mm(output,weight.t()) + bias
+        output_flat = logits.view(-1, ntokens)
+        output_flat_logsoftmax = torch.log_softmax(output_flat, dim=1)
+        targets_flatten = torch.flatten(targets)
+        total_loss += - output_flat_logsoftmax[torch.arange(targets_flatten.shape[0]), targets_flatten].sum().item()
+        # total_loss += len(data) * criterion(logits, targets).data
+
+    return total_loss / (data_source[1:, :] != corpus.dictionary.word2idx['1']).sum().item()
 
 
 def train():
     # Turn on training mode which enables dropout.
-    total_loss = 0
+    total_loss = 0.
     start_time = time.time()
     ntokens = len(corpus.dictionary)
     hidden = model.init_hidden(args.batch_size)
-    batch, i = 0, 0
-    while i < train_data.size(0) - 1 - 1:
+    # batch, i = 0, 0
+    # while i < train_data.size(0) - 1 - 1:
+    for batch, (data, targets) in enumerate(get_batch_padded(train_data, args.batch_size)):
         bptt = args.bptt if np.random.random() < 0.95 else args.bptt / 2.
         # Prevent excessively small or negative sequence lengths
         seq_len = max(5, int(np.random.normal(bptt, 5)))
@@ -336,7 +357,7 @@ def train():
         lr2 = optimizer.param_groups[0]['lr']
         optimizer.param_groups[0]['lr'] = lr2 * seq_len / args.bptt
         model.train()
-        data, targets = get_batch(train_data, i, args, seq_len=seq_len)
+        # data, targets = get_batch(train_data, i, args, seq_len=seq_len)
 
         # Starting each batch, we detach the hidden state from how it was previously produced.
         # If we didn't, the model would try backpropagating all the way to start of the dataset.
@@ -347,9 +368,13 @@ def train():
 
 
         logits = torch.mm(output,weight.t()) + bias
-        raw_loss = criterion(logits, targets)
+        # raw_loss = criterion(logits, targets)
+        # loss = raw_loss
 
-        loss = raw_loss
+        output_flat = output.view(-1, ntokens)
+        output_flat_logsoftmax = torch.log_softmax(output_flat, dim=1)
+        targets_flatten = torch.flatten(targets)
+        loss = - output_flat_logsoftmax[torch.arange(targets_flatten.shape[0]), targets_flatten].sum()
         # Activation Regularization
         if args.alpha: loss = loss + sum(args.alpha * dropped_rnn_h.pow(2).mean() for dropped_rnn_h in dropped_rnn_hs[-1:])
         # Temporal Activation Regularization (slowness)
@@ -360,7 +385,7 @@ def train():
         if args.clip: torch.nn.utils.clip_grad_norm_(params, args.clip)
         optimizer.step()
 
-        total_loss += raw_loss.data
+        total_loss += loss.item()
         optimizer.param_groups[0]['lr'] = lr2
         if batch % args.log_interval == 0 and batch > 0:
             cur_loss = total_loss.item() / args.log_interval
@@ -372,8 +397,8 @@ def train():
             total_loss = 0
             start_time = time.time()
         ###
-        batch += 1
-        i += seq_len
+        # batch += 1
+        # i += seq_len
 
 # Loop over epochs.
 lr = args.lr
