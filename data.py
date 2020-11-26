@@ -43,8 +43,12 @@ class Corpus(object):
         with open(path, 'r', encoding="utf8") as f:
             idss = []
             for line in f:
+
                 # words = line.strip().split(' ') + ['<eos>']
-                words = ['<bos>'] + line.strip().split(' ') + ['<eos>']
+                stripped = line.strip().split(' ')
+                if len(stripped > max_len) or stripped[0] == '=':
+                    continue
+                words = ['<bos>'] + stripped + ['<eos>']
                 ids = []
                 for word in words:
                     ids.append(self.dictionary.word2idx[word])
