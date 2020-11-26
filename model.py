@@ -20,7 +20,7 @@ import torch.nn.functional as F
 import numpy as np
 from allennlp.modules.highway import Highway
 from adaptive_io import AdaptiveEmbedding
-from utils import *
+from util import *
 
 import IPython as ipy
 
