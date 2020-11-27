@@ -336,7 +336,11 @@ def evaluate(data_source, batch_size=10):
         output_flat = logits.view(-1, ntokens)
         output_flat_logsoftmax = torch.log_softmax(output_flat, dim=1)
         targets_flatten = torch.flatten(targets)
-        total_loss += - output_flat_logsoftmax[torch.arange(targets_flatten.shape[0]), targets_flatten].sum().item()
+        targets_flatten = torch.flatten(targets)
+        target_mask = (targets_flatten != corpus.dictionary.word2idx[corpus.padding]).to(torch.get_default_dtype())
+        loss = - (target_mask * torch.gather(output_flat_logsoftmax, 1, targets_flatten[None, :])).reshape((800 - 1),
+                                                                                                           -1).sum(dim=0)
+        total_loss += loss.item()
         # total_loss += len(data) * criterion(logits, targets).data
 
     return total_loss / (data_source[1:, :] != corpus.dictionary.word2idx[corpus.padding]).sum().item()
