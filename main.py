@@ -338,8 +338,7 @@ def evaluate(data_source, batch_size=10):
         output_flat_logsoftmax = torch.log_softmax(output_flat, dim=1)
         targets_flatten = torch.flatten(targets)
         target_mask = (targets_flatten != corpus.dictionary.word2idx[corpus.padding]).to(torch.get_default_dtype())
-        loss = - (target_mask * torch.gather(output_flat_logsoftmax, 1, targets_flatten[None, :])).reshape((800 - 1),
-                                                                                                           -1).sum()
+        loss = - (target_mask * torch.gather(output_flat_logsoftmax, 1, targets_flatten[None, :])).sum() / target_mask.sum()
         total_loss += loss.item()
         # total_loss += len(data) * criterion(logits, targets).data
 
@@ -385,7 +384,7 @@ def train():
         output_flat_logsoftmax = torch.log_softmax(output_flat, dim=1)
         targets_flatten = torch.flatten(targets)
         target_mask = (targets_flatten != corpus.dictionary.word2idx[corpus.padding]).to(torch.get_default_dtype())
-        loss = - (target_mask * torch.gather(output_flat_logsoftmax, 1, targets_flatten[None, :])).reshape((800-1), -1).sum(dim=0).mean()
+        loss = - (target_mask * torch.gather(output_flat_logsoftmax, 1, targets_flatten[None, :])) / target_mask.sum()
         # loss = - (target_mask * output_flat_logsoftmax[torch.arange(targets_flatten.shape[0]), targets_flatten]).sum() / target_mask.sum()
         # Activation Regularization
         if args.alpha: loss = loss + sum(args.alpha * dropped_rnn_h.pow(2).mean() for dropped_rnn_h in dropped_rnn_hs[-1:])
@@ -405,7 +404,7 @@ def train():
             logging('| epoch {:3d} | {:5d}/{:5d} batches | lr {:05.5e} | ms/batch {:5.2f} | '
                     'loss {:5.2f} | ppl {:8.2f} | bpc {:8.3f}'.format(
                 epoch, batch, len(train_data) // args.bptt, optimizer.param_groups[0]['lr'],
-                elapsed * 1000 / args.log_interval, cur_loss, cur_loss, cur_loss / math.log(2)))
+                elapsed * 1000 / args.log_interval, cur_loss, math.exp(cur_loss), cur_loss / math.log(2)))
             total_loss = 0
             start_time = time.time()
         ###
