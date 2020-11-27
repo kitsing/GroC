@@ -338,7 +338,7 @@ def evaluate(data_source, batch_size=10):
         output_flat_logsoftmax = torch.log_softmax(output_flat, dim=1)
         targets_flatten = torch.flatten(targets)
         target_mask = (targets_flatten != corpus.dictionary.word2idx[corpus.padding]).to(torch.get_default_dtype())
-        loss = - (target_mask * torch.gather(output_flat_logsoftmax, 1, targets_flatten[None, :])).sum() / target_mask.sum()
+        loss = - (target_mask * torch.gather(output_flat_logsoftmax, 1, targets_flatten[None, :])).sum()
         total_loss += loss.item()
         # total_loss += len(data) * criterion(logits, targets).data
 
