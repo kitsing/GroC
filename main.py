@@ -325,12 +325,12 @@ def evaluate(data_source, batch_size=10):
     ntokens = len(corpus.dictionary)
     # hidden = model.init_hidden(batch_size)
     # for i in range(0, data_source.size(0) - 1, args.bptt):
-    for data, targets in get_batch_padded(data_source, eval_batch_size):
+    for data, targets in get_batch_padded(data_source, batch_size):
         hidden = model.init_hidden(batch_size)
+        hidden = repackage_hidden(hidden)
 
         # data, targets = get_batch_padded(data_source, eval_batch_size)
         output, weight, bias, hidden = model(data, hidden)
-        hidden = repackage_hidden(hidden)
 
         logits = torch.mm(output,weight.t()) + bias
         output_flat = logits.view(-1, ntokens)
@@ -339,7 +339,7 @@ def evaluate(data_source, batch_size=10):
         targets_flatten = torch.flatten(targets)
         target_mask = (targets_flatten != corpus.dictionary.word2idx[corpus.padding]).to(torch.get_default_dtype())
         loss = - (target_mask * torch.gather(output_flat_logsoftmax, 1, targets_flatten[None, :])).reshape((800 - 1),
-                                                                                                           -1).sum(dim=0)
+                                                                                                           -1).sum()
         total_loss += loss.item()
         # total_loss += len(data) * criterion(logits, targets).data
 
