@@ -330,12 +330,12 @@ def evaluate(data_source, batch_size=10):
         hidden = repackage_hidden(hidden)
 
         # data, targets = get_batch_padded(data_source, eval_batch_size)
+        print(f'{data[0].shape}\t{hidden.shape}')
         output, weight, bias, hidden = model(data, hidden)
 
         logits = torch.mm(output,weight.t()) + bias
         output_flat = logits.view(-1, ntokens)
         output_flat_logsoftmax = torch.log_softmax(output_flat, dim=1)
-        targets_flatten = torch.flatten(targets)
         targets_flatten = torch.flatten(targets)
         target_mask = (targets_flatten != corpus.dictionary.word2idx[corpus.padding]).to(torch.get_default_dtype())
         loss = - (target_mask * torch.gather(output_flat_logsoftmax, 1, targets_flatten[None, :])).reshape((800 - 1),
