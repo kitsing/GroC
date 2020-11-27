@@ -323,9 +323,11 @@ def evaluate(data_source, batch_size=10):
     model.eval()
     total_loss = 0.
     ntokens = len(corpus.dictionary)
-    hidden = model.init_hidden(batch_size)
+    # hidden = model.init_hidden(batch_size)
     # for i in range(0, data_source.size(0) - 1, args.bptt):
     for data, targets in get_batch_padded(data_source, eval_batch_size):
+        hidden = model.init_hidden(batch_size)
+
         # data, targets = get_batch_padded(data_source, eval_batch_size)
         output, weight, bias, hidden = model(data, hidden)
         hidden = repackage_hidden(hidden)
@@ -345,11 +347,13 @@ def train():
     total_loss = 0.
     start_time = time.time()
     ntokens = len(corpus.dictionary)
-    hidden = model.init_hidden(args.batch_size)
+    # hidden = model.init_hidden(args.batch_size)
     # batch, i = 0, 0
     # while i < train_data.size(0) - 1 - 1:
     from tqdm import tqdm
     for batch, (data, targets) in tqdm(enumerate(get_batch_padded(train_data, args.batch_size))):
+        hidden = model.init_hidden(args.batch_size)
+
         bptt = args.bptt if np.random.random() < 0.95 else args.bptt / 2.
         # Prevent excessively small or negative sequence lengths
         seq_len = max(5, int(np.random.normal(bptt, 5)))
