@@ -25,7 +25,7 @@ class Corpus(object):
         self.dictionary = Dictionary()
         for w in [Corpus.padding, Corpus.bos, Corpus.eos]:
             self.dictionary.add_word(w)
-        self.train = self.tokenize(os.path.join(path, 'train.txt'))
+        self.train = self.tokenize(os.path.join(path, 'train.txt.21'))
         self.valid = self.tokenize(os.path.join(path, 'valid.txt'))
         self.test = self.tokenize(os.path.join(path, 'test.txt'))
 

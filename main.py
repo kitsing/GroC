@@ -377,7 +377,7 @@ def train():
         output_flat_logsoftmax = torch.log_softmax(output_flat, dim=1)
         targets_flatten = torch.flatten(targets)
         target_mask = (targets_flatten != corpus.dictionary.word2idx[corpus.padding]).to(torch.get_default_dtype())
-        loss = - (target_mask * torch.gather(output_flat_logsoftmax, 1, targets_flatten)).reshape(-1, 800).sum(dim=1).mean()
+        loss = - (target_mask * torch.gather(output_flat_logsoftmax, 1, targets_flatten[None, :])).reshape(-1, (800-1)).sum(dim=1).mean()
         # loss = - (target_mask * output_flat_logsoftmax[torch.arange(targets_flatten.shape[0]), targets_flatten]).sum() / target_mask.sum()
         # Activation Regularization
         if args.alpha: loss = loss + sum(args.alpha * dropped_rnn_h.pow(2).mean() for dropped_rnn_h in dropped_rnn_hs[-1:])
